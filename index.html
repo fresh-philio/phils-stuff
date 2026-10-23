@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1b5a39" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b261a" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Solitär">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px system-ui,sans-serif}
+[hidden]{display:none!important}
+</style>
+<title>Solitär</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+/* Layout: grüner Filztisch mit Vignette. Kopfzeile mit Zählern, Buttonleiste, darunter das Brett:
+   obere Reihe Stapel / Ablage / 4 Fundamente, darunter 7 Spalten. Karten wie Papier mit Schatten. */
+:root{
+  --felt-hi:#2f8758;
+  --felt-lo:#1b5a39;
+  --ink:#eaf4e7;
+  --ink-soft:rgba(234,244,231,.72);
+  --slot:rgba(255,255,255,.24);
+  --ctl:rgba(0,0,0,.28);
+  --ctl-ink:#f1f8ee;
+  --ctl-line:rgba(255,255,255,.22);
+  --panel:#173b29;
+  --card-a:#ffffff;
+  --card-b:#eeebe1;
+  --card-line:rgba(0,0,0,.38);
+  --suit-black:#1b1e1d;
+  --suit-red:#c0382a;
+  --back-a:#8f1f2c;
+  --back-b:#b73040;
+  --sel:#f4b93f;
+  --display:'Young Serif', Georgia, 'Times New Roman', serif;
+  --body:'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --noise-dark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .42 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --noise-light:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --paper:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --felt-hi:#174a30;
+    --felt-lo:#0b261a;
+    --panel:#0f2a1d;
+    --card-a:#f5f4ee;
+    --card-b:#e2dfd3;
+    --back-a:#7a1a26;
+    --back-b:#9c2a38;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --felt-hi:#174a30;
+  --felt-lo:#0b261a;
+  --panel:#0f2a1d;
+  --card-a:#f5f4ee;
+  --card-b:#e2dfd3;
+  --back-a:#7a1a26;
+  --back-b:#9c2a38;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  background-color:var(--felt-lo);
+  background-image:
+    radial-gradient(ellipse 110% 85% at 50% 40%, transparent 52%, rgba(0,0,0,.42) 100%),
+    var(--noise-dark),
+    var(--noise-light),
+    radial-gradient(ellipse 120% 90% at 50% 28%, var(--felt-hi) 0%, var(--felt-lo) 78%);
+  color:var(--ink);
+  font-family:var(--body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:12px 20px;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;
+  user-select:none;
+}
+.app{max-width:560px;margin:0 auto}
+
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top h1{margin:0;font:400 30px/1 var(--display);letter-spacing:-.01em;text-shadow:0 2px 3px rgba(0,0,0,.35)}
+.top .sub{margin:4px 0 0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+.stats{display:flex;gap:16px;font-size:14px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.stats b{color:var(--ink);font-weight:700}
+
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+button{
+  font:600 14px/1 var(--body);
+  min-height:42px;
+  padding:0 14px;
+  border-radius:10px;
+  border:1px solid var(--ctl-line);
+  background:var(--ctl);
+  color:var(--ctl-ink);
+  cursor:pointer;
+  box-shadow:0 1px 0 rgba(255,255,255,.08) inset, 0 2px 4px rgba(0,0,0,.25);
+}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
+button.go{background:var(--sel);border-color:transparent;color:#1d1503}
+
+.board{position:relative;margin-top:14px;min-height:300px}
+
+/* Leere Ablageplätze wie in den Filz eingedrückt */
+.slot{
+  position:absolute;
+  width:var(--cw);height:var(--ch);
+  border:2px solid var(--slot);
+  border-radius:calc(var(--cw)*.12);
+  background:rgba(0,0,0,.10);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.38), 0 1px 0 rgba(255,255,255,.07);
+  display:flex;align-items:center;justify-content:center;
+  color:rgba(255,255,255,.28);
+  font:400 calc(var(--cw)*.5)/1 var(--display);
+}
+
+.card{
+  position:absolute;
+  width:var(--cw);height:var(--ch);
+  border-radius:calc(var(--cw)*.12);
+  overflow:hidden;
+}
+.card.up{
+  background-image:var(--paper), linear-gradient(150deg,var(--card-a) 0%,var(--card-b) 100%);
+  border:1px solid var(--card-line);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.75),
+    0 1px 1px rgba(0,0,0,.35),
+    0 3px 7px rgba(0,0,0,.30);
+  color:var(--suit-black);
+  touch-action:none;
+  cursor:grab;
+}
+.card.up.red{color:var(--suit-red)}
+
+.ix{
+  position:absolute;
+  left:calc(var(--cw)*.07);top:calc(var(--cw)*.05);
+  display:flex;flex-direction:column;align-items:center;
+  line-height:1;
+  min-width:calc(var(--cw)*.3);
+}
+.ix b{font:700 calc(var(--cw)*.27)/1 var(--body);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.ix i{font-style:normal;font-size:calc(var(--cw)*.22);line-height:1;margin-top:calc(var(--cw)*.015)}
+.ix.r{left:auto;top:auto;right:calc(var(--cw)*.07);bottom:calc(var(--cw)*.05);transform:rotate(180deg)}
+
+.art{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;
+}
+.art .suit{font-size:calc(var(--cw)*.46);line-height:1}
+.art .suit.ace{font-size:calc(var(--cw)*.72)}
+.art .royal{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--cw)*.02);
+  width:calc(var(--cw)*.5);height:calc(var(--cw)*.78);
+  border:1px solid currentColor;
+  border-radius:calc(var(--cw)*.06);
+  background:linear-gradient(135deg,transparent 0 46%,rgba(0,0,0,.05) 46% 54%,transparent 54%);
+  box-shadow:inset 0 0 0 calc(var(--cw)*.025) rgba(255,255,255,.55);
+}
+.art .royal b{font:400 calc(var(--cw)*.38)/1 var(--display)}
+.art .royal i{font-style:normal;font-size:calc(var(--cw)*.2);line-height:1}
+
+/* Kartenrücken mit Rautenmuster und weißem Rand */
+.card.down{
+  background-image:
+    repeating-linear-gradient(45deg,rgba(255,255,255,.20) 0 1px,transparent 1px 6px),
+    repeating-linear-gradient(-45deg,rgba(255,255,255,.20) 0 1px,transparent 1px 6px),
+    var(--paper),
+    linear-gradient(160deg,var(--back-b),var(--back-a));
+  border:calc(var(--cw)*.07) solid var(--card-a);
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,.25),
+    0 1px 1px rgba(0,0,0,.35),
+    0 3px 7px rgba(0,0,0,.30);
+}
+
+.card.sel{outline:3px solid var(--sel);outline-offset:-2px}
+.card.dragging{
+  pointer-events:none;
+  cursor:grabbing;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.75),
+    0 10px 20px rgba(0,0,0,.45),
+    0 3px 6px rgba(0,0,0,.35);
+}
+
+.hint{margin:16px 0 0;font-size:13px;line-height:1.5;color:var(--ink-soft);max-width:48ch}
+
+.win{
+  position:fixed;inset:0;z-index:200;
+  display:flex;align-items:center;justify-content:center;
+  padding:24px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px));
+  background:rgba(4,14,9,.66);
+}
+.win-card{
+  background:var(--panel);color:var(--ctl-ink);
+  border:1px solid var(--ctl-line);
+  border-radius:16px;
+  padding:26px 24px 22px;
+  width:min(100%,340px);
+  text-align:left;
+  box-shadow:0 18px 40px rgba(0,0,0,.5);
+}
+.win-card h2{margin:0 0 6px;font:400 30px/1.1 var(--display)}
+.win-card p{margin:0 0 18px;font-size:15px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:no-preference){
+  .win-card{animation:pop .25s ease-out}
+  @keyframes pop{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+}
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header class="top">
+    <div>
+      <h1>Solitär</h1>
+      <p class="sub">Klondike · ohne Werbung</p>
+    </div>
+    <div class="stats">
+      <span>Züge <b id="moves">0</b></span>
+      <span>Zeit <b id="time">0:00</b></span>
+    </div>
+  </header>
+
+  <div class="bar">
+    <button id="bNew" type="button">Neues Spiel</button>
+    <button id="bUndo" type="button">Zurück</button>
+    <button id="bDraw" type="button" aria-label="Anzahl der gezogenen Karten umschalten">Ziehen: 1</button>
+    <button id="bAuto" type="button" class="go" hidden>Fertig spielen</button>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <p class="hint">Karten mit dem Finger auf das Ziel ziehen. Du kannst auch antippen und dann das Ziel antippen. Eine ausgewählte Karte nochmal antippen, dann geht sie automatisch aufs Fundament oder in die nächste passende Spalte.</p>
+</div>
+
+<div class="win" id="win" hidden>
+  <div class="win-card" role="dialog" aria-modal="true" aria-labelledby="winH">
+    <h2 id="winH">Geschafft!</h2>
+    <p id="winTxt"></p>
+    <button id="winNew" type="button" class="go">Neues Spiel</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var SUITS=['♠','♣','♥','♦'].map(function(s){return s+'︎'});
+  var NAMES=['Pik','Kreuz','Herz','Karo'];
+  var RANKS=[null,'A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  var RN=[null,'Ass','2','3','4','5','6','7','8','9','10','Bube','Dame','König'];
+  var KEY='klondike-v1';
+
+  var S=null, sel=null, undoStack=[], draw=1, elapsed=0, won=false, auto=false, confirmNew=false, confirmTimer=null;
+  var L={cw:40,g:6,ch:56,tabTop:70};
+  var drag=null, suppress=false;
+
+  var $board=document.getElementById('board');
+  var $moves=document.getElementById('moves');
+  var $time=document.getElementById('time');
+  var $new=document.getElementById('bNew');
+  var $undo=document.getElementById('bUndo');
+  var $draw=document.getElementById('bDraw');
+  var $auto=document.getElementById('bAuto');
+  var $win=document.getElementById('win');
+  var $winTxt=document.getElementById('winTxt');
+  var $winNew=document.getElementById('winNew');
+
+  function snap(){return JSON.stringify(S)}
+  function pushUndo(){undoStack.push(snap()); if(undoStack.length>40) undoStack.shift()}
+
+  function persist(){
+    try{ localStorage.setItem(KEY, JSON.stringify({S:S,draw:draw,elapsed:elapsed,undo:undoStack})) }catch(e){}
+  }
+  function load(){
+    try{
+      var raw=localStorage.getItem(KEY); if(!raw) return false;
+      var d=JSON.parse(raw);
+      if(!d||!d.S||!d.S.tab||d.S.tab.length!==7||!d.S.found||d.S.found.length!==4||!d.S.stock||!d.S.waste) return false;
+      var n=d.S.stock.length+d.S.waste.length;
+      d.S.tab.forEach(function(c){n+=c.length}); d.S.found.forEach(function(c){n+=c.length});
+      if(n!==52) return false;
+      S=d.S; draw=d.draw===3?3:1; elapsed=d.elapsed|0;
+      undoStack=Array.isArray(d.undo)?d.undo.filter(function(x){return typeof x==='string'}):[];
+      won=S.found.every(function(p){return p.length===13});
+      return true;
+    }catch(e){return false}
+  }
+
+  function newGame(){
+    var deck=[], s, r, i;
+    for(s=0;s<4;s++) for(r=1;r<=13;r++) deck.push({s:s,r:r,u:false});
+    for(i=deck.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)); var t=deck[i]; deck[i]=deck[j]; deck[j]=t}
+    var tab=[];
+    for(i=0;i<7;i++){var col=deck.splice(0,i+1); col[col.length-1].u=true; tab.push(col)}
+    S={stock:deck,waste:[],found:[[],[],[],[]],tab:tab,moves:0};
+    sel=null; undoStack=[]; elapsed=0; won=false; auto=false;
+    $win.hidden=true;
+    render(); persist();
+  }
+
+  function isRed(c){return c.s>=2}
+  function canTab(c,col){
+    var t=S.tab[col];
+    if(!t.length) return c.r===13;
+    var top=t[t.length-1];
+    return top.u && isRed(top)!==isRed(c) && top.r===c.r+1;
+  }
+  function foundIdx(c){
+    var empty=-1;
+    for(var i=0;i<4;i++){
+      var p=S.found[i];
+      if(!p.length){ if(empty<0) empty=i }
+      else { var t=p[p.length-1]; if(t.s===c.s && t.r===c.r-1) return i }
+    }
+    return c.r===1?empty:-1;
+  }
+
+  function peekSel(){
+    if(!sel) return null;
+    if(sel.zone==='waste'){ var w=S.waste[S.waste.length-1]; return w?[w]:null }
+    if(sel.zone==='found'){ var f=S.found[sel.col]; var fc=f[f.length-1]; return fc?[fc]:null }
+    var col=S.tab[sel.col]; var cs=col.slice(sel.idx);
+    return cs.length?cs:null;
+  }
+  function takeSel(){
+    if(sel.zone==='waste') return [S.waste.pop()];
+    if(sel.zone==='found') return [S.found[sel.col].pop()];
+    var col=S.tab[sel.col]; var cs=col.splice(sel.idx);
+    var t=col[col.length-1]; if(t && !t.u) t.u=true;
+    return cs;
+  }
+
+  function moveTo(z,k){
+    var cs=peekSel(); if(!cs) return false;
+    if(z==='found'){
+      if(cs.length!==1) return false;
+      var p=S.found[k], c=cs[0];
+      var ok=p.length ? (p[p.length-1].s===c.s && p[p.length-1].r===c.r-1) : c.r===1;
+      if(!ok) return false;
+    } else {
+      if(sel.zone==='tab' && sel.col===k) return false;
+      if(!canTab(cs[0],k)) return false;
+    }
+    pushUndo();
+    var taken=takeSel();
+    var dest=(z==='found')?S.found[k]:S.tab[k];
+    for(var i=0;i<taken.length;i++) dest.push(taken[i]);
+    S.moves++; sel=null;
+    afterMove();
+    return true;
+  }
+
+  function afterMove(){
+    if(S.found.every(function(p){return p.length===13})) finish();
+    render(); persist();
+  }
+  function finish(){
+    won=true; sel=null;
+    $winTxt.textContent=S.moves+' Züge in '+fmt(elapsed);
+    $win.hidden=false;
+  }
+
+  function smartMove(){
+    var cs=peekSel();
+    if(!cs){sel=null; render(); return}
+    var k;
+    if(cs.length===1 && sel.zone!=='found'){
+      k=foundIdx(cs[0]);
+      if(k>=0 && moveTo('found',k)) return;
+    }
+    for(k=0;k<7;k++){ if(S.tab[k].length && moveTo('tab',k)) return }
+    if(cs[0].r===13 && !(sel.zone==='tab' && sel.idx===0)){
+      for(k=0;k<7;k++){ if(!S.tab[k].length && moveTo('tab',k)) return }
+    }
+    sel=null; render();
+  }
+
+  function doDraw(){
+    if(S.stock.length){
+      pushUndo();
+      var n=Math.min(draw,S.stock.length);
+      for(var i=0;i<n;i++){ var c=S.stock.pop(); c.u=true; S.waste.push(c) }
+      S.moves++;
+    } else if(S.waste.length){
+      pushUndo();
+      var w=S.waste.slice().reverse();
+      w.forEach(function(c){c.u=false});
+      S.stock=w; S.waste=[];
+      S.moves++;
+    } else return;
+    afterMove();
+  }
+
+  function sameSel(a,b){
+    return a && a.zone===b.zone && a.col===b.col && a.idx===b.idx;
+  }
+  function tapSelect(ns){
+    if(sameSel(sel,ns)) { smartMove(); return }
+    sel=ns; render();
+  }
+
+  function onClick(e){
+    if(suppress||auto||won) return;
+    var el=e.target.closest('[data-z]');
+    if(!el){ if(sel){sel=null; render()} return }
+    var z=el.getAttribute('data-z');
+    var col=parseInt(el.getAttribute('data-col'),10);
+    var idx=parseInt(el.getAttribute('data-idx'),10);
+    var i=parseInt(el.getAttribute('data-i'),10);
+
+    if(z==='stock'){ sel=null; doDraw(); return }
+    if(z==='waste'){
+      if(S.waste.length) tapSelect({zone:'waste',col:0,idx:0});
+      return;
+    }
+    if(z==='found'){
+      if(sel && moveTo('found',i)) return;
+      if(S.found[i].length) tapSelect({zone:'found',col:i,idx:0});
+      else if(sel){sel=null; render()}
+      return;
+    }
+    if(z==='tab'){
+      if(sel && moveTo('tab',col)) return;
+      if(idx>=0 && S.tab[col][idx] && S.tab[col][idx].u) tapSelect({zone:'tab',col:col,idx:idx});
+      else if(sel){sel=null; render()}
+    }
+  }
+
+  /* ---------- Drag and Drop ---------- */
+  function startDrag(e){
+    drag.on=true; sel=drag.d;
+    var els=[drag.el];
+    if(drag.d.zone==='tab'){
+      els=[].slice.call($board.querySelectorAll('.card[data-z="tab"][data-col="'+drag.d.col+'"]'))
+        .filter(function(n){return parseInt(n.getAttribute('data-idx'),10)>=drag.d.idx});
+    }
+    drag.els=els;
+    els.forEach(function(n,i){ n.classList.add('dragging'); n.style.zIndex=100+i });
+    try{ $board.setPointerCapture(e.pointerId) }catch(_){}
+  }
+
+  function dropAt(dr){
+    var r=dr.els[0].getBoundingClientRect(), b=$board.getBoundingClientRect();
+    var cx=r.left+r.width/2-b.left, cy=r.top+r.height/2-b.top;
+    var step=L.cw+L.g, i, k;
+    function cxOf(col){return L.cw/2+col*step}
+    if(cy<L.tabTop){
+      var order=[0,1,2,3].sort(function(a,c){return Math.abs(cx-cxOf(3+a))-Math.abs(cx-cxOf(3+c))});
+      for(i=0;i<order.length;i++){ if(moveTo('found',order[i])) return true }
+      return false;
+    }
+    var cols=[0,1,2,3,4,5,6].filter(function(c){return Math.abs(cx-cxOf(c))<step*1.05})
+      .sort(function(a,c){return Math.abs(cx-cxOf(a))-Math.abs(cx-cxOf(c))});
+    for(k=0;k<cols.length;k++){ if(moveTo('tab',cols[k])) return true }
+    return false;
+  }
+
+  function endDrag(e,cancel){
+    if(!drag || e.pointerId!==drag.id) return;
+    var dr=drag; drag=null;
+    if(!dr.on) return;
+    suppress=true; setTimeout(function(){suppress=false},80);
+    try{ $board.releasePointerCapture(e.pointerId) }catch(_){}
+    if(!cancel && dropAt(dr)) return;
+    sel=null; render();
+  }
+
+  $board.addEventListener('pointerdown',function(e){
+    if(auto||won) return;
+    if(e.pointerType==='mouse' && e.button!==0) return;
+    var el=e.target.closest('.card.up[data-z]');
+    if(!el) return;
+    var z=el.getAttribute('data-z'), d=null;
+    if(z==='waste') d={zone:'waste',col:0,idx:0};
+    else if(z==='found') d={zone:'found',col:parseInt(el.getAttribute('data-i'),10),idx:0};
+    else if(z==='tab') d={zone:'tab',col:parseInt(el.getAttribute('data-col'),10),idx:parseInt(el.getAttribute('data-idx'),10)};
+    else return;
+    drag={d:d,el:el,x:e.clientX,y:e.clientY,id:e.pointerId,on:false,els:null};
+  });
+  $board.addEventListener('pointermove',function(e){
+    if(!drag || e.pointerId!==drag.id) return;
+    var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+    if(!drag.on){
+      if(dx*dx+dy*dy<64) return;
+      startDrag(e);
+    }
+    var tf='translate('+dx+'px,'+dy+'px) scale(1.04)';
+    drag.els.forEach(function(n){ n.style.transform=tf });
+  });
+  $board.addEventListener('pointerup',function(e){endDrag(e,false)});
+  $board.addEventListener('pointercancel',function(e){endDrag(e,true)});
+  $board.addEventListener('contextmenu',function(e){e.preventDefault()});
+
+  /* ---------- Automatik, Zurück ---------- */
+  function canAuto(){
+    return !won && !auto && S.stock.length===0 && S.waste.length===0 &&
+      S.tab.every(function(c){return c.every(function(x){return x.u})});
+  }
+  function runAuto(){
+    if(auto||!canAuto()) return;
+    auto=true; sel=null; pushUndo();
+    (function step(){
+      var moved=false;
+      for(var col=0;col<7 && !moved;col++){
+        var t=S.tab[col], c=t[t.length-1];
+        if(!c) continue;
+        var k=foundIdx(c);
+        if(k>=0){ t.pop(); S.found[k].push(c); S.moves++; moved=true }
+      }
+      if(moved){
+        if(S.found.every(function(p){return p.length===13})){ auto=false; finish(); render(); persist(); return }
+        render();
+        setTimeout(step,90);
+      } else { auto=false; render(); persist() }
+    })();
+  }
+
+  function undo(){
+    if(auto||!undoStack.length) return;
+    S=JSON.parse(undoStack.pop());
+    sel=null; won=false; $win.hidden=true;
+    render(); persist();
+  }
+
+  function fmt(sec){
+    var m=Math.floor(sec/60), s=sec%60;
+    return m+':'+(s<10?'0':'')+s;
+  }
+  function updateStats(){
+    $moves.textContent=S.moves;
+    $time.textContent=fmt(elapsed);
+  }
+
+  /* ---------- Darstellung ---------- */
+  function artHTML(c){
+    var su=SUITS[c.s];
+    if(c.r>=11) return '<span class="art"><span class="royal"><b>'+RANKS[c.r]+'</b><i>'+su+'</i></span></span>';
+    return '<span class="art"><span class="suit'+(c.r===1?' ace':'')+'">'+su+'</span></span>';
+  }
+  function cardHTML(c,x,y,attrs,cls){
+    var pos='left:'+x.toFixed(1)+'px;top:'+y.toFixed(1)+'px';
+    if(!c.u) return '<div class="card down '+(cls||'')+'" style="'+pos+'" '+(attrs||'')+'></div>';
+    var ix='<b>'+RANKS[c.r]+'</b><i>'+SUITS[c.s]+'</i>';
+    return '<div class="card up'+(isRed(c)?' red':'')+' '+(cls||'')+'" style="'+pos+'" '+(attrs||'')+
+      ' aria-label="'+NAMES[c.s]+' '+RN[c.r]+'"><span class="ix">'+ix+'</span><span class="ix r">'+ix+'</span>'+artHTML(c)+'</div>';
+  }
+  function slotHTML(x,y,attrs,label){
+    return '<div class="slot" style="left:'+x.toFixed(1)+'px;top:'+y.toFixed(1)+'px" '+(attrs||'')+'>'+(label||'')+'</div>';
+  }
+
+  function render(){
+    if(!S) return;
+    var W=$board.clientWidth || 320;
+    var g=Math.max(4,Math.round(W*0.015));
+    var cw=(W-6*g)/7, ch=cw*1.4;
+    $board.style.setProperty('--cw',cw+'px');
+    $board.style.setProperty('--ch',ch+'px');
+    function X(c){return c*(cw+g)}
+
+    var dn=ch*0.14, up=ch*0.42;
+    var tabTop=ch+Math.max(14,g*3);
+    L={cw:cw,g:g,ch:ch,tabTop:tabTop};
+
+    var maxSum=0;
+    S.tab.forEach(function(col){
+      var sum=0;
+      for(var i=0;i<col.length-1;i++) sum+=col[i].u?up:dn;
+      if(sum>maxSum) maxSum=sum;
+    });
+    var boardTop=$board.getBoundingClientRect().top+(window.pageYOffset||0);
+    var avail=window.innerHeight-boardTop-tabTop-ch-24;
+    var scale=maxSum>0?Math.min(1,Math.max(0.8,avail/maxSum)):1;
+
+    var h='';
+    // Stapel
+    if(S.stock.length) h+=cardHTML({u:false},X(0),0,'data-z="stock"');
+    else h+=slotHTML(X(0),0,'data-z="stock"',S.waste.length?'↻':'');
+    // Ablage
+    h+=slotHTML(X(1),0,'data-z="waste-slot"');
+    var wn=S.waste.length;
+    var show=draw===3?Math.min(3,wn):Math.min(1,wn);
+    for(var wi=0;wi<show;wi++){
+      var card=S.waste[wn-show+wi];
+      var isTop=(wi===show-1);
+      var wsel=isTop && sel && sel.zone==='waste';
+      h+=cardHTML(card,X(1)+wi*cw*0.22,0,isTop?'data-z="waste"':'',wsel?'sel':'');
+    }
+    // Fundamente
+    for(var f=0;f<4;f++){
+      var p=S.found[f];
+      h+=slotHTML(X(3+f),0,'data-z="found" data-i="'+f+'"',p.length?'':'A');
+      if(p.length){
+        var fsel=sel && sel.zone==='found' && sel.col===f;
+        h+=cardHTML(p[p.length-1],X(3+f),0,'data-z="found" data-i="'+f+'"',fsel?'sel':'');
+      }
+    }
+    // Spalten
+    var maxH=ch;
+    for(var c=0;c<7;c++){
+      var col=S.tab[c];
+      h+=slotHTML(X(c),tabTop,'data-z="tab" data-col="'+c+'" data-idx="-1"');
+      var y=tabTop;
+      for(var k=0;k<col.length;k++){
+        var cd=col[k];
+        var csel=sel && sel.zone==='tab' && sel.col===c && k>=sel.idx;
+        h+=cardHTML(cd,X(c),y,'data-z="tab" data-col="'+c+'" data-idx="'+k+'"',csel?'sel':'');
+        if(k<col.length-1) y+=(cd.u?up:dn)*scale;
+      }
+      var colH=(y-tabTop)+ch;
+      if(colH>maxH) maxH=colH;
+    }
+    $board.innerHTML=h;
+    $board.style.height=Math.ceil(tabTop+maxH+8)+'px';
+
+    updateStats();
+    $undo.disabled=auto||!undoStack.length;
+    $draw.textContent='Ziehen: '+draw;
+    $auto.hidden=!canAuto();
+  }
+
+  // Ereignisse
+  $board.addEventListener('click',onClick);
+  $undo.addEventListener('click',undo);
+  $auto.addEventListener('click',runAuto);
+  $draw.addEventListener('click',function(){draw=draw===1?3:1; render(); persist()});
+  $new.addEventListener('click',function(){
+    if(S.moves>0 && !won && !confirmNew){
+      confirmNew=true; $new.textContent='Wirklich neu?';
+      confirmTimer=setTimeout(function(){confirmNew=false; $new.textContent='Neues Spiel'},3000);
+      return;
+    }
+    clearTimeout(confirmTimer); confirmNew=false; $new.textContent='Neues Spiel';
+    newGame();
+  });
+  $winNew.addEventListener('click',newGame);
+
+  var raf=0;
+  window.addEventListener('resize',function(){
+    if(drag&&drag.on) return;
+    cancelAnimationFrame(raf); raf=requestAnimationFrame(render);
+  });
+
+  setInterval(function(){
+    if(S && S.moves>0 && !won && !document.hidden){
+      elapsed++; $time.textContent=fmt(elapsed);
+      if(elapsed%10===0) persist();
+    }
+  },1000);
+
+  if(!load()) newGame(); else { render(); if(won) { $winTxt.textContent=S.moves+' Züge in '+fmt(elapsed); $win.hidden=false } }
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ if(!(drag&&drag.on)) render() });
+})();
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
+}
+</script>
+</body>
+</html>
